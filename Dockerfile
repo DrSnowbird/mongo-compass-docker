@@ -78,6 +78,8 @@ WORKDIR ${HOME}
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
+CMD ["/usr/bin/mongodb-compass"]
+
 #### (Test only)
 #CMD ["/usr/bin/firefox"]
 #CMD ["/bin/bash"]

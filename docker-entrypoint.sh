@@ -22,10 +22,7 @@ fi
 #### ---- To keep the docker process staying alive if needed.
 #### ------------------------------------------------------------------------
 
-if [ $# -lt 1 ]; then
-    #### ------------------------------------------------------------------------
-    #### ---- You need to set PRODUCT_EXE as the full-path executable binary ----
-    #### ------------------------------------------------------------------------
+if [ $# -gt 0 ]; then
     #### **** Allow non-root users to bind to use lower than 1000 ports **** ####
     USE_CAP_NET_BIND=${USE_CAP_NET_BIND:-0}
     if [ ${USE_CAP_NET_BIND} -gt 0 ]; then
@@ -37,13 +34,14 @@ if [ $# -lt 1 ]; then
     
     #### 2.A) As Root User -- Choose this or 2.B --####
     #### ---- Use this when running Root user ---- ####
-    exec ${PRODUCT_EXE} "$@"
+    exec "$@"
+    #/bin/bash -c "$@"
     
     #### 2.B) As Non-Root User -- Choose this or 2.A  ---- #### 
     #### ---- Use this when running Non-Root user ---- ####
     #### ---- Use gosu (or su-exec) to drop to a non-root user
     #exec gosu ${NON_ROOT_USER} ${PRODUCT_EXE} "$@"
 else
-    exec "$@";
+    exec "${PRODUCT_EXE}";
 fi
 

@@ -1,0 +1,37 @@
+version: '3.1'
+
+# Usage:
+#   docker stack deploy -c stack.yml mongo (or docker-compose -f stack.yml up)
+
+services:
+
+  mongo:
+    image: mongo:latest
+    # setting MongoDB to use a smaller default file size
+    command: --smallfiles
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongoadmin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+    volumes:
+      - ./mongodb-persistence:/data/db
+
+  mongo-gui-docker:
+    image: openkbs/mongo-gui-docker
+    command: /usr/bin/mongodb-compass
+    build:
+      context: ./Dockerfile
+    container_name: mongo-gui-docker
+    environment:
+      - USER_ID=${USER_ID:-1000}
+      - GROUP_ID=${GROUP_ID:-1000}
+    env_file:
+      - ./.env
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ./workspace:/home/developer/workspace
+    depends_on:
+      - mongo
+    links:
+      - mongo
+
