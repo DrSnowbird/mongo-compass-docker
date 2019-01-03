@@ -51,6 +51,7 @@ or
 
 # References & Resources
 * [**Mongodb Document**](https://docs.mongodb.com/)
+* [Mongodb Compass (import/export)](https://docs.mongodb.com/compass/master/import-export/)
 
 # See also
 * [MySQL Workbench for MySQL Database Server Docker at openkbs/mysql-workbench](https://hub.docker.com/r/openkbs/mysql-workbench/)
