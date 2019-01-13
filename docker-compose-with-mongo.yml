@@ -14,13 +14,18 @@ services:
       MONGO_INITDB_ROOT_USERNAME: mongoadmin
       MONGO_INITDB_ROOT_PASSWORD: password123
     volumes:
-      - ./mongodb-persistence:/data/db
+      - mongodb_master_data:/data/db
+    ports:
+      - "27017:27017"
 
   mongo-gui-docker:
     image: openkbs/mongo-gui-docker
     command: /usr/bin/mongodb-compass
     build:
-      context: ./Dockerfile
+      context: ./
+      dockerfile: Dockerfile
+      args:
+        buildno: 1
     container_name: mongo-gui-docker
     environment:
       - USER_ID=${USER_ID:-1000}
@@ -35,3 +40,6 @@ services:
     links:
       - mongo
 
+volumes:
+  mongodb_master_data:
+    driver: local

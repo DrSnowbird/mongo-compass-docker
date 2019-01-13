@@ -302,6 +302,7 @@ cleanup
 #### run restart options: { no, on-failure, unless-stopped, always }
 RESTART_OPTION=no
 
+set -x
 echo ${DISPLAY}
 
 DISPLAY=${MY_IP}:0 \

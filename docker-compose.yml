@@ -4,7 +4,10 @@ services:
     image: openkbs/mongo-gui-docker
     command: /usr/bin/mongodb-compass
     build:
-      context: ./Dockerfile
+      context: ./
+      dockerfile: Dockerfile
+      args:
+        buildno: 1
     container_name: mongo-gui-docker
     environment:
       - USER_ID=${USER_ID:-1000}

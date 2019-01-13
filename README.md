@@ -21,6 +21,16 @@ Image is pulling from openkbs/mongodb-compass
 ./run.sh
 ```
 
+# Run with MongoDB together
+You can run Compass DB GUI and local MongoDB (as test database)
+```
+docker-compose -f ./docker-compose-with-mongo.yml up -d
+```
+The default password for local MongoDB:
+```
+      MONGO_INITDB_ROOT_USERNAME: admin-user
+      MONGO_INITDB_ROOT_PASSWORD: admin-password
+```
 # Build
 You can build your own image locally.
 ```

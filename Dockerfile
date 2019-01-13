@@ -5,16 +5,12 @@ MAINTAINER DrSnowbird "DrSnowbird@openkbs.org"
 #### ---- Build Specification ----
 # Metadata params
 ARG BUILD_DATE=${BUILD_DATE:-`date`}
-ARG VERSION=${BUILD_DATE:-}
-ARG VCS_REF=${BUILD_DATE:-}
+ARG VERSION=${VERSION:-}
+ARG VCS_REF=${VCS_REF:-}
 
 #### ---- Product Specifications ----
-ARG PRODUCT=${PRODUCT:-"compass"}
-ARG PRODUCT_VERSION=${PRODUCT_VERSION:-1.15.1}
-ARG PRODUCT_DIR=${PRODUCT_DIR:-/usr/share}
-ARG PRODUCT_EXE=${PRODUCT_EXE:-mongodb-compass}
 ENV PRODUCT=${PRODUCT:-"compass"}
-ENV PRODUCT_VERSION=${PRODUCT_VERSION:-1.15.1}
+ENV PRODUCT_VERSION=${PRODUCT_VERSION:-1.16.3}
 ENV PRODUCT_DIR=${PRODUCT_DIR}
 ENV PRODUCT_EXE=${PRODUCT_EXE:-mongodb-compass}
 
@@ -34,13 +30,36 @@ RUN echo PRODUCT=${PRODUCT} && echo HOME=$HOME && \
 #### --------------------------
 #### ---- Install Product ----:
 #### --------------------------
-
-#RUN sudo wget https://downloads.mongodb.com/compass/mongodb-compass_1.15.1_amd64.deb;
-RUN sudo wget https://downloads.mongodb.com/${PRODUCT}/mongodb-${PRODUCT}_${PRODUCT_VERSION}_amd64.deb;
+# https://downloads.mongodb.com/compass/mongodb-compass-community_1.16.3_amd64.deb
+ARG PRODUCT_URL=https://downloads.mongodb.com/${PRODUCT}/mongodb-${PRODUCT}_${PRODUCT_VERSION}_amd64.deb
+#RUN sudo wget https://downloads.mongodb.com/compass/mongodb-compass-community_1.16.3_amd64.deb
+RUN sudo wget --no-check-certificate ${PRODUCT_URL}
+#RUN wget wget https://downloads.mongodb.com/compass/mongodb-compass-community_1.16.3_amd64.deb
 
 RUN sudo apt-get update -y && \
     sudo apt-get install -y libsecret-1-0 libgconf-2-4 libnss3 && \
-    sudo dpkg -i mongodb-compass_1.15.1_amd64.deb;
+    sudo dpkg -i $(basename ${PRODUCT_URL});
+
+#### ---- Plugin for Compass ---- ####
+#RUN wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash && \
+RUN curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash 
+
+RUN \
+    export NVM_DIR="$HOME/.nvm" && \
+    sudo chown -R ${USER}:${USER} ${HOME} && \
+    chmod +x .nvm/nvm.sh && $NVM_DIR/nvm.sh && \
+    #nvm install stable && \
+    #npm install -g khaos && \
+    mkdir -p ${HOME}/.mongodb/${PRODUCT}-community/plugins
+    
+    #cd ${HOME}/.mongodb/${PRODUCT}-community/plugins && khaos create mongodb-js/compass-plugin ./${USER}-plugin && \
+    #cd ${HOME}/.mongo/compass/plugins
+
+    
+#RUN \
+#    # [ -s "$NVM_DIR/nvm.sh" ] && \
+#    /bin/bash -c "$NVM_DIR/nvm.sh" 
+#    # This loads nvm
 
 #### --- Copy Entrypoint script in the container ---- ####
 COPY ./docker-entrypoint.sh /
@@ -50,12 +69,6 @@ COPY ./docker-entrypoint.sh /
 #### ------------------------
 #ENV USER_NAME=${USER_NAME:-developer}
 #ENV HOME=/home/${USER_NAME}
-
-#ARG USER_ID=${USER_ID:-1000}
-#ENV USER_ID=${USER_ID}
-
-#ARG GROUP_ID=${GROUP_ID:-1000}
-#ENV GROUP_ID=${GROUP_ID}
 
 #RUN \
 #    groupadd -g ${GROUP_ID} ${USER_NAME} && \
@@ -82,5 +95,4 @@ CMD ["/usr/bin/mongodb-compass"]
 
 #### (Test only)
 #CMD ["/usr/bin/firefox"]
-#CMD ["/bin/bash"]
 
