@@ -25,7 +25,7 @@ LABEL org.label-schema.url="https://imagelayers.io" \
       org.label-schema.schema-version="1.0"
       
 RUN echo PRODUCT=${PRODUCT} && echo HOME=$HOME && \
-    sudo apt install -y gosu firefox
+    sudo apt-get install -y gosu firefox
 
 #### --------------------------
 #### ---- Install Product ----:
@@ -55,7 +55,6 @@ RUN \
     #cd ${HOME}/.mongodb/${PRODUCT}-community/plugins && khaos create mongodb-js/compass-plugin ./${USER}-plugin && \
     #cd ${HOME}/.mongo/compass/plugins
 
-    
 #RUN \
 #    # [ -s "$NVM_DIR/nvm.sh" ] && \
 #    /bin/bash -c "$NVM_DIR/nvm.sh" 
@@ -67,29 +66,12 @@ COPY ./docker-entrypoint.sh /
 #### ------------------------
 #### ---- user: Non-Root ----
 #### ------------------------
-#ENV USER_NAME=${USER_NAME:-developer}
-#ENV HOME=/home/${USER_NAME}
-
-#RUN \
-#    groupadd -g ${GROUP_ID} ${USER_NAME} && \
-#    useradd -d ${HOME} -s /bin/bash -u ${USER_ID} -g ${USER_NAME} ${USER_NAME} && \
-#    usermod -aG root ${USER_NAME} && \
-#    export uid=${USER_ID} gid=${GROUP_ID} && \
-#    mkdir -p ${HOME} && \
-#    mkdir -p ${HOME}/workspace && \
-#    mkdir -p /etc/sudoers.d && \
-#    echo "${USER_NAME}:x:${USER_ID}:${GROUP_ID}:${USER_NAME},,,:${HOME}:/bin/bash" >> /etc/passwd && \
-#    echo "${USER_NAME}:x:${USER_ID}:" >> /etc/group && \
-#    echo "${USER_NAME} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/${USER_NAME} && \
-#    chmod 0440 /etc/sudoers.d/${USER_NAME} && \
-#    chown ${USER_NAME}:${USER_NAME} -R ${HOME} && \
-#    apt-get clean all
     
 #### --- Enterpoint for container ---- ####
 USER ${USER_NAME}
 WORKDIR ${HOME}
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
+#ENTRYPOINT ["/docker-entrypoint.sh"]
 
 CMD ["/usr/bin/mongodb-compass"]
 

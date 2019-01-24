@@ -13,7 +13,7 @@ services:
       - USER_ID=${USER_ID:-1000}
       - GROUP_ID=${GROUP_ID:-1000}
     env_file:
-      - ./.env
+      - ./docker-compose.env
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ./workspace:/home/developer/workspace

@@ -1,7 +1,7 @@
 #!/bin/bash -x
 
 set -e
-set -i
+
 env
 
 #### ---- Make sure to provide Non-root user for launching Docker ----
@@ -34,14 +34,14 @@ if [ $# -gt 0 ]; then
     
     #### 2.A) As Root User -- Choose this or 2.B --####
     #### ---- Use this when running Root user ---- ####
-    exec "$@"
-    #/bin/bash -c "$@"
+    #exec "$@"
+    /bin/bash -c "$@"
     
     #### 2.B) As Non-Root User -- Choose this or 2.A  ---- #### 
     #### ---- Use this when running Non-Root user ---- ####
     #### ---- Use gosu (or su-exec) to drop to a non-root user
     #exec gosu ${NON_ROOT_USER} ${PRODUCT_EXE} "$@"
 else
-    exec "${PRODUCT_EXE}";
+    /bin/bash -c "${PRODUCT_EXE}";
 fi
 
