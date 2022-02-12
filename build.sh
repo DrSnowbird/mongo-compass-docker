@@ -9,27 +9,51 @@ set -e
 if [ $# -lt 1 ]; then
     echo "-------------------------------------------------------------------------------------------"
     echo "Usage: "
-    echo "  ${0} [<Dockerfile> <imageTag> [<some more optional arguments...>] ] "
+    echo "  ${0} [-i <imageTag>] [<more Docker build arguments ...>] ] "
     echo "e.g."
-    echo "  ./build.sh ./centos/Dockerfile.centos.xfce.vnc openkbs/centos-xfce-vnc --no-cache  --build-arg OS_TYPE=centos'"
-    echo "  ./build.sh ./Dockerfile.ubuntu.xfce.vnc openkbs/ubuntu-xfce-vnc --no-cache  --build-arg OS_TYPE=centos'"
+    echo "  ./build.sh -i my-container-image --no-cache "
+    echo "  ./build.sh --no-cache  --build-arg OS_TYPE=centos'"
     echo "-------------------------------------------------------------------------------------------"
 fi
 
-MY_DIR=$(dirname "$(readlink -f "$0")")
-
-DOCKERFILE=${1:-./Dockerfile}
-DOCKERFILE=$(realpath $DOCKERFILE)
+DOCKERFILE=./Dockerfile
 BUILD_CONTEXT=$(dirname ${DOCKERFILE})
 
-imageTag=${2}
+imageTag=
 
-if [ $# -gt 2 ]; then
-    shift 2
-    options="$*"
-else 
-    options=""
-fi
+###################################################
+#### ---- Parse Command Line Arguments:  ---- #####
+###################################################
+
+PARAMS=""
+while (( "$#" )); do
+  case "$1" in
+    -i|--imageTag)
+      imageTag=$2
+      shift 2
+      ;;
+    ## -- allowing docker's command options to go through without exiting
+    ## e.g., 
+    #-*|--*=) # unsupported flags
+    #  echo "Error: Unsupported flag $1" >&2
+    #  exit 1
+    #  ;;
+    *) # preserve positional arguments
+      PARAMS="$PARAMS $1"
+      shift
+      ;;
+  esac
+done
+# set positional arguments in their proper place
+eval set -- "$PARAMS"
+
+echo "imageTag: $imageTag"
+
+echo "remiaing args:"
+
+echo $@
+
+options=$@
 
 ##########################################################
 #### ---- Whether to remove previous build cache ---- ####
@@ -110,12 +134,14 @@ BUILD_ARGS="--build-arg BUILD_DATE=${BUILD_DATE} --build-arg VCS_REF=${VCS_REF}"
 
 ## -- ignore entries start with "#" symbol --
 function generateBuildArgs() {
-    for r in `cat ${DOCKER_ENV_FILE} | grep -v '^#'`; do
-        echo "entry=> $r"
-        key=`echo $r | tr -d ' ' | cut -d'=' -f1`
-        value=`echo $r | tr -d ' ' | cut -d'=' -f2`
-        BUILD_ARGS="${BUILD_ARGS} --build-arg $key=$value"
-    done
+    if [ "${DOCKER_ENV_FILE}" != "" ] && [ -s "${DOCKER_ENV_FILE}" ]; then
+        for r in `cat ${DOCKER_ENV_FILE} | grep -v '^#'`; do
+            echo "entry=> $r"
+            key=`echo $r | tr -d ' ' | cut -d'=' -f1`
+            value=`echo $r | tr -d ' ' | cut -d'=' -f2`
+            BUILD_ARGS="${BUILD_ARGS} --build-arg $key=$value"
+        done
+    fi
 }
 generateBuildArgs
 echo "BUILD_ARGS=${BUILD_ARGS}"
@@ -155,17 +181,21 @@ echo -e "BUILD_ARGS=> \n ${BUILD_ARGS}"
 echo
 
 ###################################################
-#### ---- Build Container ----
+#### ----------- Build Container ------------ #####
 ###################################################
 
 cd ${BUILD_CONTEXT}
 set -x
-docker build ${REMOVE_CACHE_OPTION} -t ${imageTag} \
+sudo docker build ${REMOVE_CACHE_OPTION} -t ${imageTag} \
     ${BUILD_ARGS} \
     ${options} \
-    -f $(basename ${DOCKERFILE}) .
+    -f $(basename ${DOCKERFILE}) ${BUILD_CONTEXT}
 set +x
 cd -
+
+###################################################
+#### --------- More Guides for Users -------- #####
+###################################################
 
 echo "----> Shell into the Container in interactive mode: "
 echo "  docker exec -it --name <some-name> /bin/bash"
@@ -186,5 +216,5 @@ echo "----> Build Docker Images again: "
 echo "To build again: (there is a dot at the end of the command!)"
 echo "  docker build -t ${imageTag} . "
 echo
-docker images |grep "$imageTag"
+sudo docker images |grep "$imageTag"
 

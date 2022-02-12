@@ -1,18 +1,12 @@
-# Mongodb-Compass 1.15 + Java 8 JDK + Maven 3.5 + Python 3.5 +  Gradle 4.9
+# Mongodb-Compass 1.15 + OpenJDK Java 11 + Maven 3.8 + Python 3.8  + pip 21 + node 16 + npm 7 + Gradle 7
 
 [![](https://images.microbadger.com/badges/image/openkbs/mongodb-compasss-docker.svg)](https://microbadger.com/images/openkbs/mongodb-compasss-docker "Get your own image badge on microbadger.com") [![](https://images.microbadger.com/badges/version/openkbs/mongodb-compasss-docker.svg)](https://microbadger.com/images/openkbs/mongodb-compasss-docker "Get your own version badge on microbadger.com")
 
-# License Agreement
-By using this image, you agree the [Oracle Java JDK License](http://www.oracle.com/technetwork/java/javase/terms/license/index.html).
-This image contains [Oracle JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/index.html). You must accept the [Oracle Binary Code License Agreement for Java SE](http://www.oracle.com/technetwork/java/javase/terms/license/index.html) to use this image.
 
 # Components
 * [Mongodb-Compass](https://docs.mongodb.com/compass) 1.15 
-* java version "1.8.0_191"
-  Java(TM) SE Runtime Environment (build 1.8.0_191-b12)
-  Java HotSpot(TM) 64-Bit Server VM (build 25.191-b12, mixed mode)
-* Apache Maven 3.5.3
-* Python 3.5.2
+* [Base Container Image: openkbs/jdk11-mvn-py3](https://github.com/DrSnowbird/jdk11-mvn-py3)
+* [Base Components: OpenJDK, Python 3, PIP, Node/NPM, Gradle, Maven, etc.](https://github.com/DrSnowbird/jdk11-mvn-py3#components)
 * Other tools: git wget unzip vim python python-setuptools python-dev python-numpy 
 
 # Run (recommended for easy-start)
