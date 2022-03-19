@@ -1,21 +1,95 @@
-#!/bin/bash -x
+#!/bin/bash
 
-echo "####################### Components: $(basename $0) ###########################"
+env|sort
+whoami
+id
 
-if [ -s "/usr/bin/sudo" ]; then
-    sudo=sudo
-else
-    sudo=""
+#### Assumptions:
+# 0. Run this file using 'root'
+# 1. Host certificates need to map inside the Container as: /certificates
+# 2. Container OS: Ubuntu/Debian, CentOS/Redhat, Alpine, or unknown
+
+#### ---- Usage ---- ####
+function usage() {
+    echo "Usage setup_system_certificates -d <certificates_dir> [ -h | --help]"
+}
+
+#### ---- Usage ---- ####
+ORIG_ARGS="$*"
+SHORT="hd:i:"
+LONG="help,certificates_dir:,certificates_install_dir:"
+
+# $@ is all command line parameters passed to the script.
+# -o is for short options like -v
+# -l is for long options with double dash like --version
+# the comma separates different long options
+# -a is for long options with single dash like -version
+#OPTIONS=$(getopt --options ${SHORT} --longoptions ${LONG} --name "$0" -a -- "$@")
+OPTIONS=$(getopt -o ${SHORT} -l ${LONG} --name "$0" -a -- "$@")
+
+if [[ $? != 0 ]]; then
+    echo "Arguments Parsing Error! Abort!"
+    exit 1
 fi
+eval set -- "${OPTIONS}"
 
+## Default /certificates
+SOURCE_CERTIFICATES_DIR=${SOURCE_CERTIFICATES_DIR:-/certificates}
+CERTITICATES_INSTALL_DIR=
+
+while true; do
+    case "$1" in
+        -h|--help)
+            usage "Usage setup_system_certificates -d <certificates_dir> [ -h | --help]"
+            ;;
+        -d|--certificates_dir)
+            shift
+            SOURCE_CERTIFICATES_DIR=$1
+            echo -e ">>> SOURCE_CERTIFICATES_DIR=$SOURCE_CERTIFICATES_DIR"
+            ;;
+        -i|--certificates_install_dir)
+            shift
+            CERTITICATES_INSTALL_DIR=$1
+            echo -e ">>> CERTITICATES_INSTALL_DIR=$CERTITICATES_INSTALL_DIR"
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            echo "==================================="
+            echo "*****: input args error"
+            echo ">>> Input args: $ORIG_ARGS"
+            echo ">>> Abort now!"
+            echo "==================================="
+            exit 3
+            ;;
+    esac
+    shift
+done
+
+echo "==================================="
+echo "ORIGINAL INPUT >>>>>>>>>>:"
+echo ">>> Input args: $ORIG_ARGS"
+echo "==================================="
+
+
+echo -e ">>> ==================================="
+echo -e ">>> OS Information:"
+echo -e ">>> ==================================="
 cat /etc/*rel*
+echo -e ">>> ==================================="
 
-find . -name "ca-certificates"
+echo -e ">>> ls command: `which ls`"
 
-if [ "$1" != "" ]; then
-    SOURCE_CERTIFICATES_DIR=${SOURCE_CERTIFICATES_DIR:-$1}
+if [ ! -s ${SOURCE_CERTIFICATES_DIR} ]; then
+    echo -e ">>> **************************************************************************************"
+    echo -e ">>> ERROR: SOURCE_CERTIFICATES_DIR: ${SOURCE_CERTIFICATES_DIR}: NOT Existing/Found! Abort!"
+    echo -e ">>> **************************************************************************************"
+    exit 1
 else
-    SOURCE_CERTIFICATES_DIR=${SOURCE_CERTIFICATES_DIR:-/certificates}
+    echo -e ">>> SOURCE_CERTIFICATES_DIR:"
+    $sudo ls -al ${SOURCE_CERTIFICATES_DIR}
 fi
 
 #### ---------------------------------------------------------------------------------------------------------------------------------- ####
@@ -33,92 +107,56 @@ function findMyAbsDir() {
 # findMyAbsDir
 MY_ABS_DIR=$(dirname "$(readlink -f "$0")")
 
-#### ---- Usage ---- ####
-function usage() {
-    echo "Usage setup_system_certificates -d <certificates_dir> [ -h | --help]"
-}
-
-#### ---- Usage ---- ####
-ORIG_ARGS="$*"
-SHORT="hd:"
-LONG="help,certificates_dir:"
-
-# $@ is all command line parameters passed to the script.
-# -o is for short options like -v
-# -l is for long options with double dash like --version
-# the comma separates different long options
-# -a is for long options with single dash like -version
-#OPTIONS=$(getopt --options ${SHORT} --longoptions ${LONG} --name "$0" -a -- "$@")
-OPTIONS=$(getopt -o ${SHORT} -l ${LONG} --name "$0" -a -- "$@")
-
-if [[ $? != 0 ]]; then
-    echo "Arguments Parsing Error! Abort!"
-    exit 1
-fi
-eval set -- "${OPTIONS}"
-
-while true; do
-    case "$1" in
-        -h|--help)
-            usage "Usage setup_system_certificates -d <certificates_dir> [ -h | --help]"
-            ;;
-        -d|--certificates_dir)
-            shift
-            SOURCE_CERTIFICATES_DIR=$1
-            echo "SOURCE_CERTIFICATES_DIR=$SOURCE_CERTIFICATES_DIR"
-            ;;
-        --)
-            shift
-            break
-            ;;
-        *)
-            echo "*****: input args error"
-            echo "$ORIG_ARGS"
-            exit 3
-            ;;
-    esac
-    shift
-done
-
-echo "ORIGINAL INPUT >>>>>>>>>>:"
-echo "${ORIG_ARGS}"
-echo "-------------"
 
 #### -------------------------------------------------
-#### OS_TYPE=1:Ubuntu, 2:Centos,, 0: OS_TYPE_NOT_FOUND
+#### OS_TYPE=
+#### >>>
+#### 0: OS_TYPE_NOT_FOUND
+#### 1: ubuntu/debian
+#### 2: centos/redhat/fedora
+#### 3: alpine
+#### 4: others
 #### -------------------------------------------------
 OS_TYPE=0
 
 REPO_CONF=/etc/apt/apt.conf
 ETC_ENV=/etc/environment
+APT_PATH=/usr/bin/apt
+YUM_PATH=/usr/bin/yum
 
+OS_NAME=
 function detectOS_alt() {
-    os_name="`which yum`"
-    if [ "$os_name" = "" ]; then
-        os_name="`which apt`"
-        if [ "$os_name" = "" ]; then
-            OS_TYPE=0
-        else
-            OS_TYPE=1
-        fi
-    else
+    OS_NAME="`which yum`"
+    if [ -s ${APT_PATH} ]; then
+        OS_NAME="ubuntu"
+        OS_TYPE=1
+    elif [ -s ${YUM_PATH} ]; then
+        OS_NAME="centos"
         OS_TYPE=2
     fi
- 
 }
-detectOS_alt
+
 
 function detectOS() {
-    os_name="`cat /etc/os-release | grep -i '^NAME=\"Ubuntu\"' | awk -F= '{print $2}' | tr '[:upper:]' '[:lower:]' |sed 's/"//g' `"
-    case ${os_name} in
-        ubuntu*)
+    OS_NAME="`cat /etc/os-release |grep -i '^id='|cut -d'=' -f2|cut -d'"' -f2 | tr '[:upper:]' '[:lower:]'`"
+    #OS_NAME="`cat /etc/os-release | grep -i '^NAME=\"Ubuntu\"' | awk -F= '{print $2}' | tr '[:upper:]' '[:lower:]' |sed 's/"//g' `"
+    if [ "${OS_NAME}" == "" ]; then
+        detectOS_alt
+    fi
+    case ${OS_NAME} in
+        ubuntu*|debian*)
             OS_TYPE=1
             REPO_CONF=/etc/apt/apt.conf
             ETC_ENV=/etc/environment
             ;;
-        centos*)
+        centos*|fedora*|redhat*)
             OS_TYPE=2
             REPO_CONF=/etc/yum.conf
+            ETC_ENV=/etc/environment
+            ;;
+        alpine*)
+            OS_TYPE=3
+            REPO_CONF=/etc/conf.d
             ETC_ENV=/etc/environment
             ;;
         *)
@@ -131,10 +169,8 @@ function detectOS() {
             ;;
     esac
 }
+detectOS
 
-#### --------------------------------------------------------------------------------------------
-#### After these steps the new CA is known by system utilities like curl and get. 
-#### Unfortunately, this does not affect most web browsers like Mozilla Firefox or Google Chrome.
 #### -------------------------------------------------------------------------------------------- 
 ## -- CentOS
 # CERTITICATES_INSTALL_DIR=${CERTITICATES_INSTALL_DIR:-/etc/pki/ca-trust/source/anchors}
@@ -156,55 +192,92 @@ function detectOS() {
 #    update-ca-certificates # (for Ubuntu OS)
 #    # update-ca-trust extract # (for CentOS OS)
 #### (Unbunt version)
-#TARGET_CERTIFICATES_DIR=/usr/local/share/ca-certificates/extra
+#CERTITICATES_INSTALL_DIR=/usr/local/share/ca-certificates/extra
+#### --------------------------------------------------------------------------------------------
+
+#### ---- Targeted OS' Certificates Install Directory: ---- ####
+
+
 if [ $OS_TYPE -eq 1 ]; then
-    # Ubuntu
-    CERT_COMMAND=`which update-ca-certificates`
+    # ------------
+    # -- Ubuntu --
+    # ------------
+    #CERT_COMMAND=`which update-ca-certificates`
+    CERT_COMMAND=/usr/sbin/update-ca-certificates
     CMD_OPT=
-    TARGET_CERTIFICATES_DIR=/usr/local/ca-certificates
-    if [ -s /usr/local/share/ca-certificates ]; then
-        TARGET_CERTIFICATES_DIR=/usr/local/share/ca-certificates
-    fi
+    CERTITICATES_INSTALL_DIR=${CERTITICATES_INSTALL_DIR:-/usr/local/share/ca-certificates}
+elif [ $OS_TYPE -eq 2 ]; then
+    # ------------
+    # -- CentOS --
+    # ------------
+    #CERT_COMMAND=`which update-ca-trust`
+    CERT_COMMAND=/usr/bin/update-ca-trust
+    #CMD_OPT=extract
+    #CMD_OPT="force-enable"
+    CMD_OPT=
+    CERTITICATES_INSTALL_DIR=${CERTITICATES_INSTALL_DIR:-/etc/pki/ca-trust/source/anchors/}
+elif [ $OS_TYPE -eq 3 ]; then
+    # ------------
+    # -- Alpine --
+    # ------------
+    # https://hackernoon.com/alpine-docker-image-with-secured-communication-ssl-tls-go-restful-api-128eb6b54f1f
+    CERT_COMMAND=`which update-ca-certificates`
+    #CERT_COMMAND=/usr/sbin/update-ca-certificates
+    CMD_OPT=
+    CERTITICATES_INSTALL_DIR=${CERTITICATES_INSTALL_DIR:-/usr/local/share/ca-certificates/}
+    #CERTIFICATES_FILE=${CERTIFICATES_FILE:-mitre-chain.txt}
+    # wget -O mitre-chain.crt --no-check-certificate https://gitlab.mitre.org/mitre-scripts/mitre-pki/raw/master/normalized/mitre-chain.txt
+    #wget -O ${CERTIFICATES_FILE} --no-check-certificate https://gitlab.mitre.org/mitre-scripts/mitre-pki/raw/master/normalized/${CERTIFICATES_FILE}
+    apk update && apk add ca-certificates && rm -rf /var/cache/apk/* 
+    #cp ${CERTIFICATES_FILE} /usr/local/share/ca-certificates/
+    #update-ca-certificates
 else
-    if [ $OS_TYPE -eq 2 ]; then
-        # CentOS
-        CERT_COMMAND=`which update-ca-trust`
-        TARGET_CERTIFICATES_DIR=/etc/pki/ca-trust/source/anchors
-        CMD_OPT=extract
-    else
-        echo "OS_TYPE Unknown! Can't do! Abort!"
-        exit 1
-    fi
+    echo -e ">>> ========================================"
+    echo -e ">>> ERROR: OS_TYPE Unknown! Can't do! Abort!"
+    echo -e ">>> ========================================"
+    exit 1
 fi
+
 
 function setupSystemCertificates() {
     echo "================= Setup System Certificates ===================="
-    if [ ! -s ${TARGET_CERTIFICATES_DIR} ]; then
-        echo -e "*** TARGET_CERTIFICATES_DIR: ${TARGET_CERTIFICATES_DIR}: Not Found!"
-        $sudo mkdir -p ${TARGET_CERTIFICATES_DIR}
+    if [ ! -s ${CERTITICATES_INSTALL_DIR} ]; then
+        echo -e ">>> WARNING: CERTITICATES_INSTALL_DIR: ${CERTITICATES_INSTALL_DIR}: Not Found!"
+        $sudo mkdir -p ${CERTITICATES_INSTALL_DIR}
     fi
     if [ -s /etc/ca-certificates/update.d/docker-openjdk ]; then
-        cat /etc/ca-certificates/update.d/docker-openjdk
+        sudo cat /etc/ca-certificates/update.d/docker-openjdk
         echo ">> JAVA PATH=`which java`"
         $sudo sed -i "s#\$JAVA_HOME#$JAVA_HOME#g" /etc/ca-certificates/update.d/docker-openjdk
         env | grep -i java
-        $sudo cat /etc/ca-certificates/update.d/docker-openjdk
+        sudo cat /etc/ca-certificates/update.d/docker-openjdk
     fi
-    for cert in `cd ${SOURCE_CERTIFICATES_DIR} && ls * | grep -v dummy`; do
+    sudo ls -al  ${SOURCE_CERTIFICATES_DIR}/*
+    echo -e ">>> ------------------------------"
+    echo -e ">>> ------------------------------"
+    echo -e ">>> /certificates: ${CERT_FILES}"
+    echo -e ">>> ------------------------------"
+    #for certificate in `$sudo ls ${SOURCE_CERTIFICATES_DIR}/* | grep '*.pem\|*.crt' | grep -v dummy`; do
+    CERT_FILES=`find ${SOURCE_CERTIFICATES_DIR} -type f |grep -v dummy|grep 'crt\|pem'`
+    for cert_file in ${CERT_FILES}; do
+        echo -e ">>> Adding Certificate file: ${cert_file}"
+        filename=$(basename -- "$cert_file")
+        extension="${filename##*.}"
         ## -- Converting from PEM to CRT: -- ##
         ## openssl x509 -ouform der -in Some-Certificate.pem -out Some-Certificate.crt
-        if [[ "${cert}" == *"pem" ]]; then
-            openssl x509 -ouform der -in ${SOURCE_CERTIFICATES_DIR}/${cert} -out ${cert//pem/crt}
+        #if [[ "${cert_file}" == *"pem" ]]; then
+        if [ "${extension}" == "pem" ]; then
+            $sudo openssl x509 -ouform der -in ${cert_file} -out ${SOURCE_CERTIFICATES_DIR}/${filename//pem/crt}
         fi
-        if [[ "${cert}" == *"crt" ]]; then
+        #if [[ "${cert_file}" == *"crt" ]]; then
+        if [ "${extension}" == "crt" ]; then
             #$sudo cp root.cert.pem /usr/local/share/ca-certificates/root.cert.crt
-            cert_basename=$(basename $cert)
-            $sudo cp ${SOURCE_CERTIFICATES_DIR}/${cert} ${TARGET_CERTIFICATES_DIR}/$(basename ${cert})
+            # $sudo cp ${SOURCE_CERTIFICATES_DIR}/${cert} ${CERTITICATES_INSTALL_DIR}/${filename}
+            $sudo cp ${cert_file} ${CERTITICATES_INSTALL_DIR}/
         else
             echo "... ignore non-certificate file: $cert"
         fi
     done
-    #$sudo update-ca-certificates
     $sudo ${CERT_COMMAND} ${CMD_OPT}
 }
 setupSystemCertificates 
