@@ -8,6 +8,7 @@ id
 # 0. Run this file using 'root'
 # 1. Host certificates need to map inside the Container as: /certificates
 # 2. Container OS: Ubuntu/Debian, CentOS/Redhat, Alpine, or unknown
+# 3. Certificates' file name extensions: *.crt, *.pem
 
 #### ---- Usage ---- ####
 function usage() {
@@ -252,7 +253,7 @@ function setupSystemCertificates() {
         env | grep -i java
         sudo cat /etc/ca-certificates/update.d/docker-openjdk
     fi
-    sudo ls -al  ${SOURCE_CERTIFICATES_DIR}/*
+    $sudo ls -al  ${SOURCE_CERTIFICATES_DIR}/*
     echo -e ">>> ------------------------------"
     echo -e ">>> ------------------------------"
     echo -e ">>> /certificates: ${CERT_FILES}"
