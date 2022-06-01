@@ -1,43 +1,48 @@
-version: '3.1'
+
+version: '3.3'
 
 # Usage:
-#   docker stack deploy -c stack.yml mongo (or docker-compose -f stack.yml up)
+#   docker stack deploy -c stack.yml mongo
+# or 
+#   docker-compose -f stack.yml up
 
 services:
 
-  mongo:
-    image: mongo:latest
-    # setting MongoDB to use a smaller default file size
-    #command: --smallfiles
+  mongo-docker:
+    image: mongo
+    #image: mongo:latest
     restart: always
+    container_name: mongo-docker
     environment:
       MONGO_INITDB_ROOT_USERNAME: mongoadmin
       MONGO_INITDB_ROOT_PASSWORD: mongoadmin
-    volumes:
-      - mongodb_master_data:/data/db
+      #MONGODB_AUTH_DATABASE: admin
     ports:
       - "27017:27017"
-
-  mongo-gui-docker:
-    image: openkbs/mongo-gui-docker
-    command: /usr/bin/mongodb-compass
-    build:
-      context: ./
-      dockerfile: Dockerfile
-      args:
-        buildno: 1
-    container_name: mongo-gui-docker
-    environment:
-      - USER_ID=${USER_ID:-1000}
-      - GROUP_ID=${GROUP_ID:-1000}
+    # command: --smallfiles 
     volumes:
-      - /tmp/.X11-unix:/tmp/.X11-unix
-      - ./workspace:/home/developer/workspace
-    depends_on:
-      - mongo
-    links:
-      - mongo
+      - ./workspace:/workspace
+      - type: volume
+        source: mongodb_data_volume
+        target: /data/db
+        
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: always
+    ports:
+      - "28081:8081"
+    environment:
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: changeme
+      #ME_CONFIG_MONGODB_AUTH_DATABASE: admin
+      ME_CONFIG_MONGODB_ADMINUSERNAME: mongoadmin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: mongoadmin
+      ME_CONFIG_MONGODB_URL: mongodb://mongoadmin:mongoadmin@mongo-docker:27017/ 
 
 volumes:
-  mongodb_master_data:
-    driver: local
+  mongodb_data_volume:
+    driver: local    
+    
+
+

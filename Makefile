@@ -55,15 +55,17 @@ RESTART_OPTION := always
 
 SHA := $(shell git describe --match=NeVeRmAtCh --always --abbrev=40 --dirty=*)
 
+TIME_START := $(shell date +%s)
+
 .PHONY: clean rmi build push pull up down run stop exec
 
 clean:
-	echo $(DOCKER_NAME) $(DOCKER_IMAGE):$(VERSION) 
+	$(DOCKER_NAME) $(DOCKER_IMAGE):$(VERSION) 
 
 default: build
 
-build:
-	sudo docker build \
+build-time:
+	docker build \
 	--build-arg BASE_IMAGE="$(BASE_IMAGE)" \
 	--build-arg CIRCLE_SHA1="$(SHA)" \
 	--build-arg version=$(VERSION) \
@@ -71,43 +73,69 @@ build:
 	--build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
 	-t $(DOCKER_IMAGE):$(VERSION) .
 
-push: build
-	sudo docker commit -m "$comment" ${containerID} ${imageTag}:$(VERSION)
-	sudo docker push $(DOCKER_IMAGE):$(VERSION)
+build-rm:
+	docker build --force-rm --no-cache \
+		-t $(DOCKER_IMAGE):$(VERSION) .
+
+build:
+	docker build \
+	    -t $(DOCKER_IMAGE):$(VERSION) .
+	docker images | grep $(DOCKER_IMAGE)
+	@echo ">>> Total Dockder images Build using time in seconds: $$(($$(date +%s)-$(TIME_START))) seconds"
+
+push:
+	docker commit -m "$comment" ${containerID} ${imageTag}:$(VERSION)
+	docker push $(DOCKER_IMAGE):$(VERSION)
 
 	docker tag $(imageTag):$(VERSION) $(REGISTRY_IMAGE):$(VERSION)
-	#sudo docker tag $(imageTag):latest $(REGISTRY_IMAGE):latest
+	#docker tag $(imageTag):latest $(REGISTRY_IMAGE):latest
 	docker push $(REGISTRY_IMAGE):$(VERSION)
-	#sudo docker push $(REGISTRY_IMAGE):latest
+	#docker push $(REGISTRY_IMAGE):latest
 	@if [ ! "$(IMAGE_EXPORT_PATH)" = "" ]; then \
 		mkdir -p $(IMAGE_EXPORT_PATH); \
-		sudo docker save $(REGISTRY_IMAGE):$(VERSION) | gzip > $(IMAGE_EXPORT_PATH)/$(DOCKER_NAME)_$(VERSION).tar.gz; \
+		docker save $(REGISTRY_IMAGE):$(VERSION) | gzip > $(IMAGE_EXPORT_PATH)/$(DOCKER_NAME)_$(VERSION).tar.gz; \
 	fi
+	
 pull:
 	@if [ "$(REGISTRY_HOST)" = "" ]; then \
-		sudo docker pull $(DOCKER_IMAGE):$(VERSION) ; \
+		docker pull $(DOCKER_IMAGE):$(VERSION) ; \
 	else \
-		sudo docker pull $(REGISTRY_IMAGE):$(VERSION) ; \
+		docker pull $(REGISTRY_IMAGE):$(VERSION) ; \
 	fi
 
-
+## -- deployment mode (daemon service): -- ##
 up:
-	sudo docker-compose up -d
+	bin/auto-config-all.sh
+	docker-compose up -d
+	docker ps | grep $(DOCKER_IMAGE)
+	@echo ">>> Total Dockder images Build using time in seconds: $$(($$(date +%s)-$(TIME_START))) seconds"
 
 down:
-	sudo docker-compose down
+	docker-compose down
+	docker ps | grep $(DOCKER_IMAGE)
+	@echo ">>> Total Dockder images Build using time in seconds: $$(($$(date +%s)-$(TIME_START))) seconds"
 
+down-rm:
+	docker-compose down -v --rmi all --remove-orphans
+	docker ps | grep $(DOCKER_IMAGE)
+	@echo ">>> Total Dockder images Build using time in seconds: $$(($$(date +%s)-$(TIME_START))) seconds"
+
+## -- dev/debug -- ##
 run:
-	sudo docker run --name=$(DOCKER_NAME) --restart=$(RESTART_OPTION) $(VOLUME_MAP) $(DOCKER_IMAGE):$(VERSION)
+	bin/auto-config-all.sh
+	./run.sh
+	docker ps | grep $(DOCKER_IMAGE)
+	
+#docker run --name=$(DOCKER_NAME) --restart=$(RESTART_OPTION) $(VOLUME_MAP) $(DOCKER_IMAGE):$(VERSION)
 
-stop: run
-	sudo docker stop --name=$(DOCKER_NAME)
+stop:
+	docker stop --name=$(DOCKER_NAME)
 
 status:
-	sudo docker ps
+	docker ps | grep $(DOCKER_NAME)
 
 rmi:
-	sudo docker rmi $$(docker images -f dangling=true -q)
+	docker rmi $$(docker images -f dangling=true -q)
 
-exec: up
-	sudo docker-compose exec $(DOCKER_NAME) /bin/bash
+exec:
+	docker-compose exec $(DOCKER_NAME) /bin/bash

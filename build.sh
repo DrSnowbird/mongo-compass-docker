@@ -16,7 +16,18 @@ if [ $# -lt 1 ]; then
     echo "-------------------------------------------------------------------------------------------"
 fi
 
-DOCKERFILE=./Dockerfile
+DOCKERFILE=${1:-./Dockerfile}
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+    # Linux
+    MY_DIR=$(dirname "$(readlink -f "$0")")
+    DOCKERFILE=$(realpath $DOCKERFILE)
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    # Mac OSX
+    MY_DIR=`pwd`
+else
+    MY_DIR=`pwd`
+fi
+
 BUILD_CONTEXT=$(dirname ${DOCKERFILE})
 
 imageTag=

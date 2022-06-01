@@ -10,27 +10,19 @@ ARG VCS_REF=${VCS_REF:-}
 
 #### ---- Product Specifications ----
 ENV PRODUCT=${PRODUCT:-"compass"}
-ENV PRODUCT_VERSION=${PRODUCT_VERSION:-1.16.4}
+ENV PRODUCT_VERSION=${PRODUCT_VERSION:-1.32.0}
 ENV PRODUCT_DIR=${PRODUCT_DIR}
 ENV PRODUCT_EXE=${PRODUCT_EXE:-mongodb-compass}
 
-# Metadata
-LABEL org.label-schema.url="https://imagelayers.io" \
-      org.label-schema.build-date=$BUILD_DATE \
-      org.label-schema.version=$VERSION \
-      org.label-schema.vcs-url="https://github.com/microscaling/imagelayers-graph.git" \
-      org.label-schema.vcs-ref=$VCS_REF \
-      org.label-schema.docker.dockerfile="/Dockerfile" \
-      org.label-schema.description="This utility provides a docker template files for building Docker." \
-      org.label-schema.schema-version="1.0"
 
 #### --------------------------
 #### ---- Install Product ----:
 #### --------------------------
-# https://downloads.mongodb.com/compass/mongodb-compass-community_1.16.3_amd64.deb
+# https://downloads.mongodb.com/compass/mongodb-compass_1.32.0_amd64.deb
 ARG PRODUCT_URL=https://downloads.mongodb.com/${PRODUCT}/mongodb-${PRODUCT}_${PRODUCT_VERSION}_amd64.deb
 RUN sudo apt-get update -y && \
     sudo apt-get install -y libsecret-1-0 libgconf-2-4 libnss3 && \
+    echo ">>> PRODUCT_URL:${PRODUCT_URL}" && \
     sudo wget -q --no-check-certificate ${PRODUCT_URL} && \
     sudo dpkg -i $(basename ${PRODUCT_URL}) && \
     sudo rm -f $(basename ${PRODUCT_URL})
@@ -62,7 +54,7 @@ WORKDIR ${HOME}
 
 #ENTRYPOINT ["/docker-entrypoint.sh"]
 
-CMD ["/usr/bin/mongodb-compass"]
+CMD ["/usr/bin/mongodb-compass", "--no-sandbox"]
 
 #### (Test only)
 #CMD ["/usr/bin/firefox"]
