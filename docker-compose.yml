@@ -1,4 +1,3 @@
-
 version: '3.3'
 
 # Usage:
@@ -8,9 +7,8 @@ version: '3.3'
 
 services:
 
-  mongo-docker:
+  mongo:
     image: mongo
-    #image: mongo:latest
     restart: always
     container_name: mongo-docker
     environment:
@@ -19,7 +17,6 @@ services:
       #MONGODB_AUTH_DATABASE: admin
     ports:
       - "27017:27017"
-    # command: --smallfiles 
     volumes:
       - ./workspace:/workspace
       - type: volume
@@ -33,16 +30,17 @@ services:
     ports:
       - "28081:8081"
     environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
       ME_CONFIG_BASICAUTH_USERNAME: admin
       ME_CONFIG_BASICAUTH_PASSWORD: changeme
       #ME_CONFIG_MONGODB_AUTH_DATABASE: admin
       ME_CONFIG_MONGODB_ADMINUSERNAME: mongoadmin
       ME_CONFIG_MONGODB_ADMINPASSWORD: mongoadmin
-      ME_CONFIG_MONGODB_URL: mongodb://mongoadmin:mongoadmin@mongo-docker:27017/ 
+      ME_CONFIG_MONGODB_URL: mongo://mongoadmin:mongoadmin@mongo:27017/ 
+    depends_on:
+      - mongo
 
 volumes:
   mongodb_data_volume:
     driver: local    
     
-
-
