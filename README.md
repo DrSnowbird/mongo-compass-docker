@@ -32,7 +32,7 @@ The default password for local MongoDB:
     MONGO_INITDB_ROOT_PASSWORD: mongoadmin
     ```
 # (Optional) Run MongoDB with Mongo-Express (Web-based UI)
-You can use both Mongodb-Compass (X11 Desktop App) and Mongo-Express (Web UI) at the same!
+You can use both Mongodb-Compass (X11 Desktop App) and Mongo-Express (Web UI) at the same time!
 ```
 docker-compose up -d
 ```
